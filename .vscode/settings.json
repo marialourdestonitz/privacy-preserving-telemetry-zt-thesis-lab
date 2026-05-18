@@ -1,0 +1,7 @@
+{
+    "python.testing.pytestArgs": [
+        "ZT-Agent"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
+}

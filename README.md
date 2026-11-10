@@ -1,6 +1,6 @@
 # Privacy-Preserving Telemetry for Continuous Verification in Zero Trust File Sharing
 
-Laboratory implementation for my MSc thesis, *Design and Experimental Evaluation of Privacy-Preserving Telemetry for Continuous Verification in Zero Trust Enterprise File Sharing* (MSc Communication Engineering, FH Kärnten, 2026).
+Laboratory implementation for my MSc thesis, *Design and Experimental Evaluation of Privacy-Preserving Telemetry for Continuous Verification in Zero Trust Enterprise File Sharing* (MSc Communication Engineering, Carinthian University of Applied Sciences, 2026).
 
 
 ---

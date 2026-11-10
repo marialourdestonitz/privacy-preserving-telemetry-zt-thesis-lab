@@ -1,0 +1,40 @@
+# /etc/systemd/system/zt-pdp.service
+#
+# FastAPI / Uvicorn — ASGI runner for the Policy Decision Point.
+#
+# REVISED per the implementation review 2026-07:
+#   * ExecStart uses the venv interpreter (matches install_pdp.sh; the previous
+#     /usr/bin/python3 had no access to the pinned dependencies).
+#   * Secrets come from /etc/zt-thesis/pdp.env via EnvironmentFile (Finding E).
+#   * The former "Option B" multi-worker ExecStart has been REMOVED
+#     (Finding C): SESSIONS, the nonce cache, and the metrics counters are
+#     in-process state, and the HE flow is two dependent requests — with
+#     N workers the /api/v1/he_decision follow-up would reach a worker that
+#     has no record of the pending session and fail with 404. Horizontal
+#     scaling would require an external shared session store (e.g. Redis);
+#     that is out of scope for this thesis and is documented as such in
+#     Chapter 8. Single worker is correct and sufficient for the
+#     measurement campaign.
+
+[Unit]
+Description=ZT-Thesis Policy Decision Point (FastAPI / Uvicorn, single worker)
+After=network-online.target wg-quick@wg-zt0.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/zt-thesis/pdp
+ExecStart=/opt/zt-thesis/venv/bin/python /opt/zt-thesis/pdp/pdp_server.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/var/log/zt-thesis/pdp.stdout.log
+StandardError=append:/var/log/zt-thesis/pdp.stderr.log
+
+EnvironmentFile=/etc/zt-thesis/pdp.env
+Environment="ZT_CERT_DIR=/etc/zt-thesis/certs"
+Environment="ZT_LOG_DIR=/var/log/zt-thesis"
+Environment="ZT_WG_IFACE=wg-zt0"
+
+[Install]
+WantedBy=multi-user.target

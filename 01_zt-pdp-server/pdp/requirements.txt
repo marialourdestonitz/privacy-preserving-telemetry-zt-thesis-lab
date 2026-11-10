@@ -1,0 +1,15 @@
+# PDP runtime — FastAPI port (replaces Flask 3.0)
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+pydantic==2.9.0
+
+# Crypto + privacy
+cryptography==42.0.0
+phe==1.5.0
+
+# Outbound HTTP to cloud admin APIs (sync; kept from Flask version)
+requests==2.31.0
+
+# Observability
+prometheus-client==0.19.0
+pyyaml==6.0.1

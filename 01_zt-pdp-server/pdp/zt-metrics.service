@@ -1,0 +1,22 @@
+# /etc/systemd/system/zt-metrics.service
+#
+# Plain-HTTP Prometheus metrics exporter for the PDP, bound to the trusted
+# subnet only. Referenced by 06_monitoring/prometheus-grafana-setup.docx (2.2).
+# See metrics_exporter.py for the in-memory-counter caveat.
+
+[Unit]
+Description=ZT PDP Prometheus metrics exporter
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/zt-thesis/pdp
+Environment=ZT_LOG_DIR=/var/log/zt-thesis
+Environment=ZT_METRICS_BIND=192.168.10.1
+Environment=ZT_METRICS_PORT=8000
+ExecStart=/opt/zt-thesis/venv/bin/python metrics_exporter.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

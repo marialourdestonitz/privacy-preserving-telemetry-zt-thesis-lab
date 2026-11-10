@@ -1,0 +1,2 @@
+# Cloud REST resource server (rest_api.py)
+flask==3.0.2

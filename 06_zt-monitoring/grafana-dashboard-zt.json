@@ -1,0 +1,188 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "uid": "adqlt8c",
+  "title": "Zero Trust PDP - Privacy-Preserving Telemetry",
+  "tags": ["zero-trust", "thesis"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 2,
+  "refresh": "15s",
+  "time": { "from": "now-6h", "to": "now" },
+  "description": "Revised 2026-08-11. Panel 1 now charts only real access decisions; protocol bookkeeping (EVAL, EXPIRE) moved to its own panel because counting the homomorphic mode's round-1 EVAL record as a decision inflated its decision count roughly twofold against baseline. Rejections are broken out by reason rather than counted blind. Two panels were added: mode coverage, which makes an unmeasured telemetry mode impossible to miss, and revocation cost, which was previously unchartable because the reaper hardcoded its latency to zero. Every series is an aggregate over mode, action, phase or reason: no identifier, no per-device series, no score (PR4).",
+  "templating": {
+    "list": [
+      {
+        "name": "mode",
+        "label": "Telemetry mode",
+        "type": "custom",
+        "query": "baseline,hmac,he",
+        "current": { "text": "All", "value": "$__all" },
+        "includeAll": true,
+        "multi": true
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 10,
+      "title": "Mode coverage - has every telemetry mode actually been measured?",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 0 },
+      "description": "The cross-mode comparison is the core claim of the thesis (Goal 4, Scenario 6). It needs baseline, hmac and he. A mode showing 0 or 'No data' here has not been run, and any comparison drawn without it is unsupported. This panel exists because a campaign was once run in he mode alone and the dashboard gave no hint of it.",
+      "targets": [
+        {
+          "expr": "sum by (mode) (zt_decisions_total)",
+          "legendFormat": "{{mode}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "value_and_name",
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "NOT RUN",
+          "mappings": [
+            { "type": "special", "options": { "match": "null", "result": { "text": "NOT RUN", "color": "red", "index": 0 } } }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 1,
+      "title": "Access decisions by mode and action",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 5 },
+      "description": "ALLOW, DENY and REVOKE only - the outcomes that change what a client may reach. Directly comparable across modes. Protocol bookkeeping is charted separately below.",
+      "targets": [
+        {
+          "expr": "zt_decisions_total{mode=~\"$mode\"}",
+          "legendFormat": "{{mode}} / {{action}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "stepAfter": true } } }
+    },
+    {
+      "id": 2,
+      "title": "ALLOW vs DENY (current totals)",
+      "type": "piechart",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 5 },
+      "targets": [
+        {
+          "expr": "sum by (action) (zt_decisions_total{action=~\"ALLOW|DENY\"})",
+          "legendFormat": "{{action}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Mean decision latency by mode & phase (ms)",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 14 },
+      "description": "Phase resolution is what separates cryptographic evaluation (he_round1) from network transport and enforcement (he_round2). Reporting a single end-to-end figure would attribute enforcement cost to Paillier arithmetic, which is the category error Section 8.2 warns against.",
+      "targets": [
+        {
+          "expr": "zt_latency_ms_mean{mode=~\"$mode\",phase=~\"decision|he_round1|he_round2\"}",
+          "legendFormat": "{{mode}} / {{phase}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
+    },
+    {
+      "id": 4,
+      "title": "p95 latency by mode & phase (ms)",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 14 },
+      "description": "The tail, not the mean, is what a user occasionally meets. A p95 far above the mean in a given mode is a finding, not noise - Section 8.2 attributes one such tail to the on-demand salt fetch.",
+      "targets": [
+        {
+          "expr": "zt_latency_ms_p95{mode=~\"$mode\",phase=~\"decision|he_round1|he_round2\"}",
+          "legendFormat": "{{mode}} / {{phase}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
+    },
+    {
+      "id": 11,
+      "title": "Revocation cost by mode (ms) - explicit revoke vs reaper expiry",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 23 },
+      "description": "PDP-side teardown time across the three enforcement planes. Previously unchartable: the reaper hardcoded its latency to 0.0, so the expiry series was meaningless. NOTE: this is the cost of withdrawing enforcement state, NOT the revocation time the thesis reports. Section 7.1.5 requires that to be measured at the resource, because the question is when access actually ends.",
+      "targets": [
+        {
+          "expr": "zt_latency_ms_mean{mode=~\"$mode\",phase=~\"revoke|expiry\"}",
+          "legendFormat": "mean {{mode}} / {{phase}}",
+          "refId": "A"
+        },
+        {
+          "expr": "zt_latency_ms_p95{mode=~\"$mode\",phase=~\"revoke|expiry\"}",
+          "legendFormat": "p95 {{mode}} / {{phase}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
+    },
+    {
+      "id": 6,
+      "title": "Protocol events (not decisions)",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 23 },
+      "description": "EVAL is the homomorphic round-1 record, written before any decision exists. EXPIRE is the reaper ageing a session out. Both are real and worth charting, but neither is an access decision, and counting them as such made the two-round homomorphic mode appear to make twice as many decisions as baseline.",
+      "targets": [
+        {
+          "expr": "zt_protocol_events_total{mode=~\"$mode\"}",
+          "legendFormat": "{{mode}} / {{event}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "stepAfter": true } } }
+    },
+    {
+      "id": 5,
+      "title": "Rejections by reason",
+      "type": "bargauge",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 32 },
+      "description": "Telemetry refused before scoring. The reason label is what makes a rejection diagnosable: nonce_replayed and a timestamp skew outside the freshness window mean very different things, and clock skew in particular produces failures that are artifacts of an unsynchronised machine rather than properties of the system (Section 7.1.5). A non-zero count here must be explained in Section 7.3, not left standing.",
+      "targets": [
+        {
+          "expr": "last_over_time(zt_rejections_total{mode=~\"$mode\"}[15m])",
+          "legendFormat": "{{mode}} / {{reason}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 10 }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

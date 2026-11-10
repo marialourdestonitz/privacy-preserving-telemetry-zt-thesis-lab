@@ -1,0 +1,35 @@
+# =====================================================================
+#  minio.service  --  S3 resource plane for the thesis laboratory
+#  Install to /etc/systemd/system/minio.service
+#
+#  Both the API port and the console port are pinned as literal arguments
+#  rather than expanded from an Options variable. Passing them through a
+#  variable left the console binding a different port on every restart,
+#  because systemd does not perform shell word splitting on ExecStart.
+#  That fault is recorded as E7 in the implementation chapter.
+# =====================================================================
+[Unit]
+Description=MinIO object storage (Zero Trust laboratory S3 plane)
+Documentation=https://min.io/docs/minio/linux/index.html
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=minio-user
+Group=minio-user
+EnvironmentFile=/etc/minio/admin.env
+ExecStart=/usr/local/bin/minio server /mnt/data \
+  --address :9000 \
+  --console-address :9001 \
+  --certs-dir /etc/minio/certs
+Restart=always
+RestartSec=5s
+LimitNOFILE=65536
+# The data directory is the only path this service needs to write.
+ProtectSystem=full
+ProtectHome=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,25 @@
+# prometheus.yml - scrape config for the ZT thesis monitoring VM (zt-monitoring)
+# Scrapes the PDP's plain-HTTP metrics exporter (metrics_exporter.py) on the
+# trusted subnet. Place at /etc/prometheus/prometheus.yml and restart Prometheus.
+#
+# The exporter serves zt_decisions_total{mode,action}, zt_latency_ms_mean{mode,phase},
+# and zt_latency_ms_p95{mode,phase}, rebuilt from the PDP decision logs.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # The Zero Trust PDP metrics
+  - job_name: 'zt-pdp'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['192.168.10.1:8000']
+        labels:
+          instance: 'zt-pdp-server'
+          component: 'pdp'
+
+  # Prometheus scraping itself (health)
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

@@ -1,0 +1,28 @@
+# /etc/systemd/system/zt-rest.service
+# Cloud REST resource server for the ZT thesis lab (ubuntu-cloud, 192.168.40.10).
+# Runs the Flask app on localhost; nginx terminates TLS on :443 in front of it.
+#
+# ZT_FLASK_ADMIN MUST equal the value in /etc/zt-thesis/pdp.env on the PDP -
+# it is the shared admin secret the PEP uses to issue/revoke tokens.
+
+[Unit]
+Description=ZT-Thesis Cloud REST Resource Server (Flask)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/zt-cloud
+ExecStart=/usr/bin/python3 /opt/zt-cloud/rest_api.py
+Restart=on-failure
+RestartSec=5
+# Secrets/config: create /etc/zt-cloud/rest.env (chmod 600) with:
+#   ZT_FLASK_ADMIN=<same token as pdp.env on the PDP>
+#   ZT_FILES_DIR=/opt/zt-cloud/files
+EnvironmentFile=/etc/zt-cloud/rest.env
+Environment="ZT_REST_BIND=127.0.0.1"
+Environment="ZT_REST_PORT=5000"
+
+[Install]
+WantedBy=multi-user.target

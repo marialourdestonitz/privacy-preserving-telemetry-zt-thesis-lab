@@ -1,0 +1,26 @@
+# /etc/systemd/system/zt-webdav-admin.service
+# WebDAV allowlist admin + authz service (192.168.40.20).
+# Flask on localhost; nginx fronts TLS (:8444 admin, :443 WebDAV auth_request).
+#
+# ZT_NGINX_ADMIN MUST equal the value in /etc/zt-thesis/pdp.env on the PDP.
+
+[Unit]
+Description=ZT-Thesis WebDAV Allowlist Admin (Flask)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/zt-webdav
+ExecStart=/usr/bin/python3 /opt/zt-webdav/webdav_admin.py
+Restart=on-failure
+RestartSec=5
+# Create /etc/zt-webdav/admin.env (chmod 600) with:
+#   ZT_NGINX_ADMIN=<same token as pdp.env on the PDP>
+EnvironmentFile=/etc/zt-webdav/admin.env
+Environment="ZT_WEBDAV_ADMIN_BIND=127.0.0.1"
+Environment="ZT_WEBDAV_ADMIN_PORT=5001"
+
+[Install]
+WantedBy=multi-user.target
